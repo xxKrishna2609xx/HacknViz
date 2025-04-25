@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Missing Person Finder</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- <body style="background-image: url(''); background-size: cover; background-position: center;"> -->
+    <!-- <body style="background-image: url('/image.jpg'); background-size: cover; background-position: center;"> -->
+      <body style="background-image: url('/static/image.jpg'); background-size: cover; background-position: center;">
+
+
+  <div class="container">
+    <!-- <h1>Find Missing Person</h1> -->
+    <h1 id="wavy">
+      <span>F</span><span>i</span><span>n</span><span>d</span>
+      <span>&nbsp;</span>
+      <span>M</span><span>i</span><span>s</span><span>s</span><span>i</span><span>n</span><span>g</span>
+      <span>&nbsp;</span>
+      <span>P</span><span>e</span><span>r</span><span>s</span><span>o</span><span>n</span>
+    </h1>
+    
+    <form id="uploadForm" enctype="multipart/form-data">
+      <input type="file" name="image" id="imageInput" required />
+      <button type="submit">Check for Match</button>
+    </form>
+    <div id="result"></div>
+  </div>
+
+  <div class="webcam-section">
+    <h2>Or Use Your Camera</h2>
+    <video id="video" width="100%" autoplay></video>
+    <button id="captureBtn">📸 Capture & Check</button>
+    <canvas id="canvas" style="display:none;"></canvas>
+  </div>
+  
+  <!-- Team Details Section 
+  <footer class="footer">
+    <h3>Team Members</h3>
+    <ul>
+      <li>Krishna Goyal</li>
+      <li>Achintya Srivastava</li>
+      <li>Mukund Maheshwari</li>
+      <li>Antra Agrawal</li>
+    </ul>
+    <p>AI-Powered Surveillance | Hackathon 2025</p>
+  </footer> -->
+
+  <body>
+    <div class="content-wrapper">
+       <!-- All your main content here  -->
+       <!-- Footer stays outside container  -->
+      <footer class="footer">
+        <h3>Team Members</h3>
+        <ul>
+          <li>Krishna Goyal</li>
+          <li>Achintya Srivastava</li>
+          <li>Mukund Maheshwari</li>
+          <li>Antra Agrawal</li>
+        </ul>
+        <p>AI-Powered Surveillance | Hackathon 2025</p>
+      </footer>
+    </div>
+  </body>
+  
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const resultDiv = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+      resultDiv.innerText = "Checking...";
+
+      const response = await fetch('/match', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (data.match_found === true) {
+        resultDiv.innerHTML = `<p class="success">✅ Match Found!</p>`;
+      } else if (data.match_found === false) {
+        resultDiv.innerHTML = `<p class="error">❌ No Match Found.</p>`;
+      } else {
+        resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+      }
+    });
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const captureBtn = document.getElementById('captureBtn');
+      const resultDiv = document.getElementById('result');
+    
+      if (!video || !canvas || !captureBtn || !resultDiv) {
+        console.error("Missing one or more required DOM elements.");
+        return;
+      }
+    
+      // Access webcam
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+        })
+        .catch(err => {
+          console.error("Camera access denied:", err);
+        });
+    
+      captureBtn.addEventListener('click', async () => {
+        // Draw the video frame to canvas
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+    
+        // Convert canvas to Blob
+        canvas.toBlob(async (blob) => {
+          const formData = new FormData();
+          formData.append('image', blob, 'capture.jpg');
+          resultDiv.innerText = "Checking...";
+    
+          const response = await fetch('/match', {
+            method: 'POST',
+            body: formData
+          });
+    
+          const data = await response.json();
+    
+          if (data.match_found === true) {
+            resultDiv.innerHTML = `<p class="success">✅ Match Found!</p>`;
+          } else if (data.match_found === false) {
+            resultDiv.innerHTML = `<p class="error">❌ No Match Found.</p>`;
+          } else {
+            resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+          }
+        }, 'image/jpeg');
+      });
+    });
+    </script>
+
+</body>
+</html>
