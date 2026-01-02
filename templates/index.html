@@ -6,10 +6,7 @@
   <title>AI Missing Person Finder</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
-<body>
-  <!-- <body style="background-image: url(''); background-size: cover; background-position: center;"> -->
-    <!-- <body style="background-image: url('/image.jpg'); background-size: cover; background-position: center;"> -->
-      <body style="background-image: url('/static/image.jpg'); background-size: cover; background-position: center;">
+<body style="background-image: url('/static/image.jpg'); background-size: cover; background-position: center;">
 
 
   <div class="container">
@@ -24,7 +21,11 @@
     
     <form id="uploadForm" enctype="multipart/form-data">
       <input type="file" name="image" id="imageInput" required />
-      <button type="submit">Check for Match</button>
+      <div class="button-group">
+        <button type="submit" id="matchBtn">🔍 Face Match Only</button>
+        <button type="button" id="analyzeBtn">🤖 AI Analysis Only</button>
+        <button type="button" id="comprehensiveBtn">⚡ Comprehensive Analysis</button>
+      </div>
     </form>
     <div id="result"></div>
   </div>
@@ -32,7 +33,11 @@
   <div class="webcam-section">
     <h2>Or Use Your Camera</h2>
     <video id="video" width="100%" autoplay></video>
-    <button id="captureBtn">📸 Capture & Check</button>
+    <div class="webcam-buttons">
+      <button id="captureBtn">📸 Capture & Face Match</button>
+      <button id="captureAnalyzeBtn">🤖 Capture & AI Analyze</button>
+      <button id="captureComprehensiveBtn">⚡ Capture & Full Analysis</button>
+    </div>
     <canvas id="canvas" style="display:none;"></canvas>
   </div>
   
@@ -48,55 +53,112 @@
     <p>AI-Powered Surveillance | Hackathon 2025</p>
   </footer> -->
 
-  <body>
-    <div class="content-wrapper">
-       <!-- All your main content here  -->
-       <!-- Footer stays outside container  -->
-      <footer class="footer">
-        <h3>Team Members</h3>
-        <ul>
-          <li>Krishna Goyal</li>
-          <li>Achintya Srivastava</li>
-          <li>Mukund Maheshwari</li>
-          <li>Antra Agrawal</li>
-        </ul>
-        <p>AI-Powered Surveillance | Hackathon 2025</p>
-      </footer>
-    </div>
-  </body>
+  <div class="content-wrapper">
+    <!-- Footer stays outside container  -->
+    <footer class="footer">
+      <h3>Team Members</h3>
+      <ul>
+        <li>Krishna Goyal</li>
+        <li>Achintya Srivastava</li>
+        <li>Mukund Maheshwari</li>
+        <li>Antra Agrawal</li>
+      </ul>
+      <p>AI-Powered Surveillance | Hackathon 2025</p>
+    </footer>
+  </div>
   
 
   <script>
     const form = document.getElementById('uploadForm');
     const resultDiv = document.getElementById('result');
+    const matchBtn = document.getElementById('matchBtn');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const comprehensiveBtn = document.getElementById('comprehensiveBtn');
 
-    form.addEventListener('submit', async (e) => {
+    // Face match only
+    matchBtn.addEventListener('click', async (e) => {
       e.preventDefault();
-
-      const formData = new FormData(form);
-      resultDiv.innerText = "Checking...";
-
-      const response = await fetch('/match', {
-        method: 'POST',
-        body: formData
-      });
-
-      const data = await response.json();
-
-      if (data.match_found === true) {
-        resultDiv.innerHTML = `<p class="success">✅ Match Found!</p>`;
-      } else if (data.match_found === false) {
-        resultDiv.innerHTML = `<p class="error">❌ No Match Found.</p>`;
-      } else {
-        resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
-      }
+      await performAnalysis('/match', 'Face Matching');
     });
+
+    // AI analysis only
+    analyzeBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await performAnalysis('/analyze', 'AI Analysis');
+    });
+
+    // Comprehensive analysis
+    comprehensiveBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await performAnalysis('/comprehensive', 'Comprehensive Analysis');
+    });
+
+    async function performAnalysis(endpoint, analysisType) {
+      const formData = new FormData(form);
+      resultDiv.innerHTML = `<p class="loading">🔄 ${analysisType} in progress...</p>`;
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (endpoint === '/match') {
+          if (data.match_found === true) {
+            resultDiv.innerHTML = `<p class="success">✅ Match Found!</p>`;
+          } else if (data.match_found === false) {
+            resultDiv.innerHTML = `<p class="error">❌ No Match Found.</p>`;
+          } else {
+            resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+          }
+        } else if (endpoint === '/analyze') {
+          if (data.status === 'success') {
+            resultDiv.innerHTML = `
+              <div class="analysis-result">
+                <h3>🤖 AI Analysis Results</h3>
+                <div class="analysis-content">${data.analysis.replace(/\n/g, '<br>')}</div>
+              </div>
+            `;
+          } else {
+            resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+          }
+        } else if (endpoint === '/comprehensive') {
+          if (data.status === 'success') {
+            const faceMatchStatus = data.face_match ? 
+              '<span class="success">✅ Match Found</span>' : 
+              '<span class="error">❌ No Match</span>';
+            
+            resultDiv.innerHTML = `
+              <div class="comprehensive-result">
+                <h3>⚡ Comprehensive Analysis Results</h3>
+                <div class="face-match-result">
+                  <h4>Face Matching:</h4>
+                  <p>${faceMatchStatus}</p>
+                </div>
+                <div class="ai-analysis-result">
+                  <h4>AI Analysis:</h4>
+                  <div class="analysis-content">${data.ai_analysis.replace(/\n/g, '<br>')}</div>
+                </div>
+              </div>
+            `;
+          } else {
+            resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+          }
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">⚠️ Network Error: ${error.message}</p>`;
+      }
+    }
   </script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const video = document.getElementById('video');
       const canvas = document.getElementById('canvas');
       const captureBtn = document.getElementById('captureBtn');
+      const captureAnalyzeBtn = document.getElementById('captureAnalyzeBtn');
+      const captureComprehensiveBtn = document.getElementById('captureComprehensiveBtn');
       const resultDiv = document.getElementById('result');
     
       if (!video || !canvas || !captureBtn || !resultDiv) {
@@ -113,7 +175,22 @@
           console.error("Camera access denied:", err);
         });
     
+      // Face match capture
       captureBtn.addEventListener('click', async () => {
+        await captureAndAnalyze('/match', 'Face Matching');
+      });
+
+      // AI analysis capture
+      captureAnalyzeBtn.addEventListener('click', async () => {
+        await captureAndAnalyze('/analyze', 'AI Analysis');
+      });
+
+      // Comprehensive analysis capture
+      captureComprehensiveBtn.addEventListener('click', async () => {
+        await captureAndAnalyze('/comprehensive', 'Comprehensive Analysis');
+      });
+
+      async function captureAndAnalyze(endpoint, analysisType) {
         // Draw the video frame to canvas
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -124,24 +201,63 @@
         canvas.toBlob(async (blob) => {
           const formData = new FormData();
           formData.append('image', blob, 'capture.jpg');
-          resultDiv.innerText = "Checking...";
+          resultDiv.innerHTML = `<p class="loading">🔄 ${analysisType} in progress...</p>`;
     
-          const response = await fetch('/match', {
-            method: 'POST',
-            body: formData
-          });
+          try {
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              body: formData
+            });
     
-          const data = await response.json();
+            const data = await response.json();
     
-          if (data.match_found === true) {
-            resultDiv.innerHTML = `<p class="success">✅ Match Found!</p>`;
-          } else if (data.match_found === false) {
-            resultDiv.innerHTML = `<p class="error">❌ No Match Found.</p>`;
-          } else {
-            resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+            if (endpoint === '/match') {
+              if (data.match_found === true) {
+                resultDiv.innerHTML = `<p class="success">✅ Match Found!</p>`;
+              } else if (data.match_found === false) {
+                resultDiv.innerHTML = `<p class="error">❌ No Match Found.</p>`;
+              } else {
+                resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+              }
+            } else if (endpoint === '/analyze') {
+              if (data.status === 'success') {
+                resultDiv.innerHTML = `
+                  <div class="analysis-result">
+                    <h3>🤖 AI Analysis Results</h3>
+                    <div class="analysis-content">${data.analysis.replace(/\n/g, '<br>')}</div>
+                  </div>
+                `;
+              } else {
+                resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+              }
+            } else if (endpoint === '/comprehensive') {
+              if (data.status === 'success') {
+                const faceMatchStatus = data.face_match ? 
+                  '<span class="success">✅ Match Found</span>' : 
+                  '<span class="error">❌ No Match</span>';
+                
+                resultDiv.innerHTML = `
+                  <div class="comprehensive-result">
+                    <h3>⚡ Comprehensive Analysis Results</h3>
+                    <div class="face-match-result">
+                      <h4>Face Matching:</h4>
+                      <p>${faceMatchStatus}</p>
+                    </div>
+                    <div class="ai-analysis-result">
+                      <h4>AI Analysis:</h4>
+                      <div class="analysis-content">${data.ai_analysis.replace(/\n/g, '<br>')}</div>
+                    </div>
+                  </div>
+                `;
+              } else {
+                resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+              }
+            }
+          } catch (error) {
+            resultDiv.innerHTML = `<p class="error">⚠️ Network Error: ${error.message}</p>`;
           }
         }, 'image/jpeg');
-      });
+      }
     });
     </script>
 

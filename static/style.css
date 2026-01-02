@@ -146,3 +146,90 @@ button:hover {
   margin-top: 12px;
   background-color: #00b894;
 }
+
+/* Button group styling */
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.button-group button {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.webcam-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.webcam-buttons button {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+/* Analysis result styling */
+.analysis-result, .comprehensive-result {
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+  text-align: left;
+}
+
+.analysis-result h3, .comprehensive-result h3 {
+  color: #f2f2f2;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.analysis-content {
+  color: #e0e0e0;
+  line-height: 1.6;
+  font-size: 14px;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #0f62fe;
+}
+
+.face-match-result, .ai-analysis-result {
+  margin-bottom: 20px;
+}
+
+.face-match-result h4, .ai-analysis-result h4 {
+  color: #f2f2f2;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.loading {
+  color: #ffa726;
+  font-size: 16px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .button-group {
+    gap: 8px;
+  }
+  
+  .webcam-buttons {
+    gap: 6px;
+  }
+  
+  .analysis-result, .comprehensive-result {
+    padding: 15px;
+  }
+  
+  .analysis-content {
+    font-size: 13px;
+    padding: 12px;
+  }
+}
