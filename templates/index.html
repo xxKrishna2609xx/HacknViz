@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Missing Person Finder</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- <body style="background-image: url(''); background-size: cover; background-position: center;"> -->
+    <!-- <body style="background-image: url('/image.jpg'); background-size: cover; background-position: center;"> -->
+      <body style="background-image: url('/static/image.jpg'); background-size: cover; background-position: center;">
+
+
+  <div class="container">
+    <!-- <h1>Find Missing Person</h1> -->
+    <h1 id="wavy">
+      <span>F</span><span>i</span><span>n</span><span>d</span>
+      <span>&nbsp;</span>
+      <span>M</span><span>i</span><span>s</span><span>s</span><span>i</span><span>n</span><span>g</span>
+      <span>&nbsp;</span>
+      <span>P</span><span>e</span><span>r</span><span>s</span><span>o</span><span>n</span>
+    </h1>
+    
+    <form id="uploadForm" enctype="multipart/form-data">
+      <input type="file" name="image" id="imageInput" required />
+      <div class="button-group">
+        <button type="submit" id="matchBtn">🔍 Face Match Only</button>
+        <button type="button" id="analyzeBtn">🤖 AI Analysis Only</button>
+        <button type="button" id="comprehensiveBtn">⚡ Comprehensive Analysis</button>
+      </div>
+    </form>
+    <div id="result"></div>
+  </div>
+
+  <div class="webcam-section">
+    <h2>Or Use Your Camera</h2>
+    <video id="video" width="100%" autoplay></video>
+    <div class="webcam-buttons">
+      <button id="captureBtn">📸 Capture & Face Match</button>
+      <button id="captureAnalyzeBtn">🤖 Capture & AI Analyze</button>
+      <button id="captureComprehensiveBtn">⚡ Capture & Full Analysis</button>
+    </div>
+    <canvas id="canvas" style="display:none;"></canvas>
+  </div>
+  
+  <!-- Team Details Section 
+  <footer class="footer">
+    <h3>Team Members</h3>
+    <ul>
+      <li>Krishna Goyal</li>
+      <li>Achintya Srivastava</li>
+      <li>Mukund Maheshwari</li>
+      <li>Antra Agrawal</li>
+    </ul>
+    <p>AI-Powered Surveillance | Hackathon 2025</p>
+  </footer> -->
+
+  <body>
+    <div class="content-wrapper">
+       <!-- All your main content here  -->
+       <!-- Footer stays outside container  -->
+      <footer class="footer">
+        <h3>Team Members</h3>
+        <ul>
+          <li>Krishna Goyal</li>
+          <li>Achintya Srivastava</li>
+          <li>Mukund Maheshwari</li>
+          <li>Antra Agrawal</li>
+        </ul>
+        <p>AI-Powered Surveillance | Hackathon 2025</p>
+      </footer>
+    </div>
+  </body>
+  
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const resultDiv = document.getElementById('result');
+    const matchBtn = document.getElementById('matchBtn');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const comprehensiveBtn = document.getElementById('comprehensiveBtn');
+
+    // Face match only
+    matchBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await performAnalysis('/match', 'Face Matching');
+    });
+
+    // AI analysis only
+    analyzeBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await performAnalysis('/analyze', 'AI Analysis');
+    });
+
+    // Comprehensive analysis
+    comprehensiveBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await performAnalysis('/comprehensive', 'Comprehensive Analysis');
+    });
+
+    async function performAnalysis(endpoint, analysisType) {
+      const fileInput = document.getElementById('imageInput');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        resultDiv.innerHTML = `<p class="error">⚠️ Please select an image first</p>`;
+        return;
+      }
+
+      const formData = new FormData(form);
+      resultDiv.innerHTML = `<p class="loading">🔄 ${analysisType} in progress...</p>`;
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          body: formData
+        });
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          resultDiv.innerHTML = `<p class="error">⚠️ Invalid response from server. Please try again.</p>`;
+          return;
+        }
+
+        if (endpoint === '/match') {
+          if (data.error) {
+            resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+          } else if (data.all_comparisons && data.all_comparisons.length > 0) {
+            // Display all comparison results
+            const totalCompared = data.total_compared || data.all_comparisons.length;
+            const matchesFound = data.all_comparisons.filter(c => c.match_found).length;
+            
+            let resultsHTML = `
+              <div class="analysis-result">
+                <h3>🔍 Face Matching Results</h3>
+                <p style="color: #ccc; font-size: 14px; margin-bottom: 15px;">
+                  Compared against ${totalCompared} image(s) | 
+                  ${matchesFound > 0 ? `<span style="color: #4cd137;">${matchesFound} match(es) found</span>` : '<span style="color: #e74c3c;">No matches</span>'}
+                </p>
+            `;
+            
+            if (data.best_match && data.best_match.match_found) {
+              resultsHTML += `
+                <div style="background: rgba(76, 209, 55, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #4cd137;">
+                  <p style="color: #4cd137; font-weight: bold; margin-bottom: 5px;">✅ Best Match Found!</p>
+                  <p style="color: #ccc; font-size: 13px;">Image: <strong>${data.best_match.image}</strong></p>
+                  <p style="color: #ccc; font-size: 13px;">Confidence: <strong>${data.best_match.confidence}%</strong> | Distance: ${data.best_match.distance}</p>
+                </div>
+              `;
+            }
+            
+            resultsHTML += '<div style="max-height: 400px; overflow-y: auto;"><h4 style="color: #f2f2f2; font-size: 14px; margin-bottom: 10px;">All Comparisons:</h4>';
+            
+            data.all_comparisons.forEach((comp, index) => {
+              const matchClass = comp.match_found ? 'success' : 'error';
+              const matchIcon = comp.match_found ? '✅' : '❌';
+              const matchColor = comp.match_found ? '#4cd137' : '#e74c3c';
+              
+              resultsHTML += `
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ${matchColor};">
+                  <p style="color: ${matchColor}; font-size: 13px; margin-bottom: 5px;">
+                    ${matchIcon} ${comp.match_found ? 'Match' : 'No Match'} - ${comp.image}
+                  </p>
+                  <p style="color: #ccc; font-size: 12px; margin: 0;">
+                    Distance: ${comp.distance !== null ? comp.distance : 'N/A'} | 
+                    Confidence: ${comp.confidence}%
+                    ${comp.error ? `<br><span style="color: #ffa726;">Error: ${comp.error}</span>` : ''}
+                  </p>
+                </div>
+              `;
+            });
+            
+            resultsHTML += '</div></div>';
+            resultDiv.innerHTML = resultsHTML;
+          } else {
+            resultDiv.innerHTML = `<p class="error">⚠️ No comparison results available</p>`;
+          }
+        } else if (endpoint === '/analyze') {
+          if (data.status === 'success' && data.analysis) {
+            resultDiv.innerHTML = `
+              <div class="analysis-result">
+                <h3>🤖 AI Analysis Results</h3>
+                <div class="analysis-content">${data.analysis.replace(/\n/g, '<br>')}</div>
+              </div>
+            `;
+          } else if (data.error) {
+            resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+          } else {
+            resultDiv.innerHTML = `<p class="error">⚠️ Analysis failed. Please try again.</p>`;
+          }
+        } else if (endpoint === '/comprehensive') {
+          if (data.status === 'success') {
+            let faceMatchHTML = '';
+            
+            if (data.all_comparisons && data.all_comparisons.length > 0) {
+              const matchesFound = data.all_comparisons.filter(c => c.match_found).length;
+              const totalCompared = data.total_compared || data.all_comparisons.length;
+              
+              faceMatchHTML = `
+                <h4>Face Matching (${totalCompared} images compared):</h4>
+                <p style="color: ${data.face_match ? '#4cd137' : '#e74c3c'};">
+                  ${data.face_match ? '✅ Match Found' : '❌ No Match'} 
+                  ${matchesFound > 0 ? `(${matchesFound} match${matchesFound > 1 ? 'es' : ''} found)` : ''}
+                </p>
+              `;
+              
+              if (data.best_match && data.best_match.match_found) {
+                faceMatchHTML += `
+                  <div style="background: rgba(76, 209, 55, 0.1); padding: 10px; border-radius: 6px; margin-top: 10px; border-left: 3px solid #4cd137;">
+                    <p style="color: #4cd137; font-size: 13px; margin-bottom: 5px;"><strong>Best Match:</strong> ${data.best_match.image}</p>
+                    <p style="color: #ccc; font-size: 12px;">Confidence: ${data.best_match.confidence}% | Distance: ${data.best_match.distance}</p>
+                  </div>
+                `;
+              }
+              
+              if (data.all_comparisons.length > 0) {
+                faceMatchHTML += '<div style="max-height: 200px; overflow-y: auto; margin-top: 10px;"><p style="color: #ccc; font-size: 12px; margin-bottom: 5px;">All comparisons:</p>';
+                data.all_comparisons.slice(0, 5).forEach(comp => {
+                  const matchColor = comp.match_found ? '#4cd137' : '#e74c3c';
+                  faceMatchHTML += `
+                    <p style="color: ${matchColor}; font-size: 11px; margin: 3px 0;">
+                      ${comp.match_found ? '✅' : '❌'} ${comp.image}: ${comp.confidence}% (${comp.distance || 'N/A'})
+                    </p>
+                  `;
+                });
+                if (data.all_comparisons.length > 5) {
+                  faceMatchHTML += `<p style="color: #ccc; font-size: 11px;">... and ${data.all_comparisons.length - 5} more</p>`;
+                }
+                faceMatchHTML += '</div>';
+              }
+            } else {
+              const faceMatchStatus = data.face_match === true ? 
+                '<span class="success">✅ Match Found</span>' : 
+                '<span class="error">❌ No Match</span>';
+              
+              const faceMatchError = data.face_match_error ? 
+                `<p style="color: #ffa726; font-size: 12px; margin-top: 5px;">Note: ${data.face_match_error}</p>` : '';
+              
+              const confidenceInfo = data.face_match_confidence !== undefined ? 
+                `<p style="color: #4cd137; font-size: 12px; margin-top: 5px;">Confidence: ${data.face_match_confidence}% (Distance: ${data.face_match_distance})</p>` : '';
+              
+              faceMatchHTML = `
+                <h4>Face Matching:</h4>
+                <p>${faceMatchStatus}</p>
+                ${confidenceInfo}
+                ${faceMatchError}
+              `;
+            }
+            
+            const aiAnalysis = data.ai_analysis ? 
+              `<div class="analysis-content">${data.ai_analysis.replace(/\n/g, '<br>')}</div>` :
+              '<div class="analysis-content">AI analysis unavailable</div>';
+            
+            resultDiv.innerHTML = `
+              <div class="comprehensive-result">
+                <h3>⚡ Comprehensive Analysis Results</h3>
+                <div class="face-match-result">
+                  ${faceMatchHTML}
+                </div>
+                <div class="ai-analysis-result">
+                  <h4>AI Analysis:</h4>
+                  ${aiAnalysis}
+                </div>
+              </div>
+            `;
+          } else if (data.error) {
+            resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+          } else {
+            resultDiv.innerHTML = `<p class="error">⚠️ Analysis failed. Please try again.</p>`;
+          }
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">⚠️ Network Error: ${error.message}</p>`;
+      }
+    }
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const captureBtn = document.getElementById('captureBtn');
+      const captureAnalyzeBtn = document.getElementById('captureAnalyzeBtn');
+      const captureComprehensiveBtn = document.getElementById('captureComprehensiveBtn');
+      const resultDiv = document.getElementById('result');
+    
+      if (!video || !canvas || !captureBtn || !resultDiv) {
+        console.error("Missing one or more required DOM elements.");
+        return;
+      }
+    
+      // Access webcam
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+        })
+        .catch(err => {
+          console.error("Camera access denied:", err);
+        });
+    
+      // Face match capture
+      captureBtn.addEventListener('click', async () => {
+        await captureAndAnalyze('/match', 'Face Matching');
+      });
+
+      // AI analysis capture
+      captureAnalyzeBtn.addEventListener('click', async () => {
+        await captureAndAnalyze('/analyze', 'AI Analysis');
+      });
+
+      // Comprehensive analysis capture
+      captureComprehensiveBtn.addEventListener('click', async () => {
+        await captureAndAnalyze('/comprehensive', 'Comprehensive Analysis');
+      });
+
+      async function captureAndAnalyze(endpoint, analysisType) {
+        if (!video.videoWidth || !video.videoHeight) {
+          resultDiv.innerHTML = `<p class="error">⚠️ Please wait for camera to initialize</p>`;
+          return;
+        }
+
+        // Draw the video frame to canvas
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+    
+        // Convert canvas to Blob
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            resultDiv.innerHTML = `<p class="error">⚠️ Failed to capture image</p>`;
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('image', blob, 'capture.jpg');
+          resultDiv.innerHTML = `<p class="loading">🔄 ${analysisType} in progress...</p>`;
+    
+          try {
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              body: formData
+            });
+    
+            let data;
+            try {
+              data = await response.json();
+            } catch (jsonError) {
+              resultDiv.innerHTML = `<p class="error">⚠️ Invalid response from server. Please try again.</p>`;
+              return;
+            }
+    
+            if (endpoint === '/match') {
+              if (data.error) {
+                resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+              } else if (data.all_comparisons && data.all_comparisons.length > 0) {
+                // Display all comparison results
+                const totalCompared = data.total_compared || data.all_comparisons.length;
+                const matchesFound = data.all_comparisons.filter(c => c.match_found).length;
+                
+                let resultsHTML = `
+                  <div class="analysis-result">
+                    <h3>🔍 Face Matching Results</h3>
+                    <p style="color: #ccc; font-size: 14px; margin-bottom: 15px;">
+                      Compared against ${totalCompared} image(s) | 
+                      ${matchesFound > 0 ? `<span style="color: #4cd137;">${matchesFound} match(es) found</span>` : '<span style="color: #e74c3c;">No matches</span>'}
+                    </p>
+                `;
+                
+                if (data.best_match && data.best_match.match_found) {
+                  resultsHTML += `
+                    <div style="background: rgba(76, 209, 55, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #4cd137;">
+                      <p style="color: #4cd137; font-weight: bold; margin-bottom: 5px;">✅ Best Match Found!</p>
+                      <p style="color: #ccc; font-size: 13px;">Image: <strong>${data.best_match.image}</strong></p>
+                      <p style="color: #ccc; font-size: 13px;">Confidence: <strong>${data.best_match.confidence}%</strong> | Distance: ${data.best_match.distance}</p>
+                    </div>
+                  `;
+                }
+                
+                resultsHTML += '<div style="max-height: 400px; overflow-y: auto;"><h4 style="color: #f2f2f2; font-size: 14px; margin-bottom: 10px;">All Comparisons:</h4>';
+                
+                data.all_comparisons.forEach((comp, index) => {
+                  const matchClass = comp.match_found ? 'success' : 'error';
+                  const matchIcon = comp.match_found ? '✅' : '❌';
+                  const matchColor = comp.match_found ? '#4cd137' : '#e74c3c';
+                  
+                  resultsHTML += `
+                    <div style="background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ${matchColor};">
+                      <p style="color: ${matchColor}; font-size: 13px; margin-bottom: 5px;">
+                        ${matchIcon} ${comp.match_found ? 'Match' : 'No Match'} - ${comp.image}
+                      </p>
+                      <p style="color: #ccc; font-size: 12px; margin: 0;">
+                        Distance: ${comp.distance !== null ? comp.distance : 'N/A'} | 
+                        Confidence: ${comp.confidence}%
+                        ${comp.error ? `<br><span style="color: #ffa726;">Error: ${comp.error}</span>` : ''}
+                      </p>
+                    </div>
+                  `;
+                });
+                
+                resultsHTML += '</div></div>';
+                resultDiv.innerHTML = resultsHTML;
+              } else {
+                resultDiv.innerHTML = `<p class="error">⚠️ No comparison results available</p>`;
+              }
+            } else if (endpoint === '/analyze') {
+              if (data.status === 'success' && data.analysis) {
+                resultDiv.innerHTML = `
+                  <div class="analysis-result">
+                    <h3>🤖 AI Analysis Results</h3>
+                    <div class="analysis-content">${data.analysis.replace(/\n/g, '<br>')}</div>
+                  </div>
+                `;
+              } else if (data.error) {
+                resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+              } else {
+                resultDiv.innerHTML = `<p class="error">⚠️ Analysis failed. Please try again.</p>`;
+              }
+            } else if (endpoint === '/comprehensive') {
+              if (data.status === 'success') {
+                const faceMatchStatus = data.face_match === true ? 
+                  '<span class="success">✅ Match Found</span>' : 
+                  '<span class="error">❌ No Match</span>';
+                
+                const faceMatchError = data.face_match_error ? 
+                  `<p style="color: #ffa726; font-size: 12px; margin-top: 5px;">Note: ${data.face_match_error}</p>` : '';
+                
+                const confidenceInfo = data.face_match_confidence !== undefined ? 
+                  `<p style="color: #4cd137; font-size: 12px; margin-top: 5px;">Confidence: ${data.face_match_confidence}% (Distance: ${data.face_match_distance})</p>` : '';
+                
+                const aiAnalysis = data.ai_analysis ? 
+                  `<div class="analysis-content">${data.ai_analysis.replace(/\n/g, '<br>')}</div>` :
+                  '<div class="analysis-content">AI analysis unavailable</div>';
+                
+                resultDiv.innerHTML = `
+                  <div class="comprehensive-result">
+                    <h3>⚡ Comprehensive Analysis Results</h3>
+                    <div class="face-match-result">
+                      <h4>Face Matching:</h4>
+                      <p>${faceMatchStatus}</p>
+                      ${confidenceInfo}
+                      ${faceMatchError}
+                    </div>
+                    <div class="ai-analysis-result">
+                      <h4>AI Analysis:</h4>
+                      ${aiAnalysis}
+                    </div>
+                  </div>
+                `;
+              } else if (data.error) {
+                resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+              } else {
+                resultDiv.innerHTML = `<p class="error">⚠️ Analysis failed. Please try again.</p>`;
+              }
+            }
+          } catch (error) {
+            resultDiv.innerHTML = `<p class="error">⚠️ Network Error: ${error.message}</p>`;
+          }
+        }, 'image/jpeg');
+      }
+    });
+    </script>
+
+</body>
+</html>

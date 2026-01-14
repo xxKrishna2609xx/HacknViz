@@ -1,0 +1,56 @@
+# =========================
+# Python virtual environments
+# =========================
+.venv/
+venv/
+env/
+
+# =========================
+# Python cache files
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# =========================
+# Environment variables
+# =========================
+.env
+
+# =========================
+# Flask / uploads
+# =========================
+uploads/
+instance/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# OS generated files
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# IDE / Editor files
+# =========================
+.vscode/
+.idea/
+*.swp
+
+# =========================
+# Jupyter notebooks (if any)
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Build / cache
+# =========================
+build/
+dist/
+*.egg-info/

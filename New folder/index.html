@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Image Search</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 2rem;
+      background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Equirectangular_projection_SW.jpg/1280px-Equirectangular_projection_SW.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+    }
+    #uploadSection {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 1.5rem 2rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 320px;
+    }
+    input[type="file"] {
+      margin-bottom: 1rem;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 0.5rem;
+      border: none;
+      background: #fff;
+      color: #333;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+    input[type="file"]:hover {
+      background-color: #e0e0e0;
+    }
+    button {
+      background-color: #ff6f61;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      color: white;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 111, 97, 0.6);
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    button:hover {
+      background-color: #ff3b2e;
+      transform: scale(1.05);
+    }
+    #result {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      width: 320px;
+      min-height: 80px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      overflow-wrap: break-word;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      color: #000;
+    }
+    #result.visible {
+      opacity: 1;
+    }
+    /* Modal styles */
+    #modalOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    #modalOverlay img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(255,255,255,0.8);
+      animation: fadeIn 0.3s ease forwards;
+    }
+    #modalOverlay.show {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from {opacity: 0;}
+      to {opacity: 1;}
+    }
+    /* Loading spinner */
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid #ff6f61;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0.5rem auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+    /* Image preview */
+    #preview {
+      margin-top: 1rem;
+      max-width: 320px;
+      max-height: 240px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      object-fit: contain;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="mainHeading">Find people(>_<)</h1>
+
+  <style>
+    #mainHeading {
+      background: linear-gradient(45deg, #f1f0f7, #140302, #e5eded, #050219);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 2s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+  </style>
+  <div id="uploadSection">
+    <input type="file" id="imageInput" accept="image/*" />
+    <img id="preview" alt="Image preview" />
+    <button id="searchBtn">Search</button>
+    <div id="result"></div>
+  </div>
+
+  <div id="modalOverlay"></div>
+
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const preview = document.getElementById('preview');
+    const searchBtn = document.getElementById('searchBtn');
+    const resultDiv = document.getElementById('result');
+    const modalOverlay = document.getElementById('modalOverlay');
+
+    // Show image preview on file select
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        preview.src = '';
+        preview.style.display = 'none';
+      }
+      resultDiv.textContent = '';
+      resultDiv.classList.remove('visible');
+    });
+
+    // Close modal on overlay click
+    modalOverlay.addEventListener('click', () => {
+      modalOverlay.classList.remove('show');
+      modalOverlay.innerHTML = '';
+    });
+
+    searchBtn.addEventListener('click', () => {
+      const file = imageInput.files[0];
+      if (!file) {
+        resultDiv.textContent = 'Please select an image file first.';
+        resultDiv.classList.add('visible');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      // Show loading spinner
+      resultDiv.innerHTML = '<div class="spinner"></div>';
+      resultDiv.classList.add('visible');
+
+      fetch('http://localhost:5000/search', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Display the search results with fade-in
+        if (data.error) {
+          resultDiv.textContent = 'Error: ' + data.error;
+        } else {
+          resultDiv.textContent = 'Search Results: ' + JSON.stringify(data);
+        }
+        resultDiv.classList.add('visible');
+      })
+      .catch(error => {
+        resultDiv.textContent = 'Error: ' + error.message;
+        resultDiv.classList.add('visible');
+      });
+    });
+  </script>
+</body>
+</html>

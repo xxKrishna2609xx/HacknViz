@@ -1,0 +1,8 @@
+Flask
+gunicorn
+deepface
+google-generativeai
+Pillow
+tensorflow==2.13.0
+tf-keras
+python-dotenv
