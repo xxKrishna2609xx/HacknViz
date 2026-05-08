@@ -22,8 +22,7 @@ __pycache__/
 # Flask / uploads
 # =========================
 instance/
-uploads/
-Backend/uploads/
+
 
 # =========================
 # Logs
