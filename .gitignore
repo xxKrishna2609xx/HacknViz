@@ -22,6 +22,8 @@ __pycache__/
 # Flask / uploads
 # =========================
 instance/
+uploads/
+Backend/uploads/
 
 # =========================
 # Logs
@@ -41,6 +43,7 @@ desktop.ini
 .vscode/
 .idea/
 *.swp
+tempCodeRunnerFile.py
 
 # =========================
 # Jupyter notebooks (if any)
