@@ -233,3 +233,155 @@ button:hover {
     padding: 12px;
   }
 }
+
+/* Tabs Navigation Styles */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.tab-btn {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #aaa;
+  padding: 10px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.tab-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.tab-btn.active {
+  background-color: #0f62fe;
+  color: #fff;
+  border-color: #0f62fe;
+  box-shadow: 0 4px 10px rgba(15, 98, 254, 0.35);
+}
+
+/* Hide tab content by default */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+  animation: tabFadeIn 0.35s ease-in-out;
+}
+
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Semantic Search Layout */
+.search-input-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.search-input-group input[type="text"] {
+  flex: 1;
+  background: #262626;
+  color: #ccc;
+  padding: 12px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.search-input-group input[type="text"]:focus {
+  outline: none;
+  border-color: #0f62fe;
+  box-shadow: 0 0 0 2px rgba(15, 98, 254, 0.25);
+}
+
+.search-divider {
+  margin: 25px 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+}
+
+.search-divider::after {
+  content: "OR";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #1a1a1a;
+  padding: 0 12px;
+  color: #666;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+/* Semantic Search Card Results */
+.semantic-result-card {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  border-left: 4px solid #555;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.semantic-result-card:hover {
+  transform: translateX(4px);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.semantic-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.semantic-image-name {
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.match-badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.match-high {
+  background: rgba(76, 209, 55, 0.12);
+  color: #4cd137;
+  border: 1px solid rgba(76, 209, 55, 0.25);
+  border-left-color: #4cd137;
+}
+
+.match-med {
+  background: rgba(255, 167, 38, 0.12);
+  color: #ffa726;
+  border: 1px solid rgba(255, 167, 38, 0.25);
+}
+
+.match-low {
+  background: rgba(231, 76, 60, 0.12);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.25);
+}
+
+.semantic-reason {
+  color: #ccc;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}

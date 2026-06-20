@@ -6,72 +6,79 @@
   <title>AI Missing Person Finder</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
-<body>
-  <!-- <body style="background-image: url(''); background-size: cover; background-position: center;"> -->
-    <!-- <body style="background-image: url('/image.jpg'); background-size: cover; background-position: center;"> -->
-      <body style="background-image: url('/static/image.jpg'); background-size: cover; background-position: center;">
+<body style="background-image: url('/static/image.jpg'); background-size: cover; background-position: center;">
+  <div class="content-wrapper">
 
+    <div class="container">
+      <!-- <h1>Find Missing Person</h1> -->
+      <h1 id="wavy">
+        <span>F</span><span>i</span><span>n</span><span>d</span>
+        <span>&nbsp;</span>
+        <span>M</span><span>i</span><span>s</span><span>s</span><span>i</span><span>n</span><span>g</span>
+        <span>&nbsp;</span>
+        <span>P</span><span>e</span><span>r</span><span>s</span><span>o</span><span>n</span>
+      </h1>
 
-  <div class="container">
-    <!-- <h1>Find Missing Person</h1> -->
-    <h1 id="wavy">
-      <span>F</span><span>i</span><span>n</span><span>d</span>
-      <span>&nbsp;</span>
-      <span>M</span><span>i</span><span>s</span><span>s</span><span>i</span><span>n</span><span>g</span>
-      <span>&nbsp;</span>
-      <span>P</span><span>e</span><span>r</span><span>s</span><span>o</span><span>n</span>
-    </h1>
-    
-    <form id="uploadForm" enctype="multipart/form-data">
-      <input type="file" name="image" id="imageInput" required />
-      <div class="button-group">
-        <button type="submit" id="matchBtn">🔍 Face Match Only</button>
-        <button type="button" id="analyzeBtn">🤖 AI Analysis Only</button>
-        <button type="button" id="comprehensiveBtn">⚡ Comprehensive Analysis</button>
+      <div class="tabs">
+        <button class="tab-btn active" id="tabBiometric">👤 Biometric & AI</button>
+        <button class="tab-btn" id="tabSemantic">🔎 Semantic Search</button>
       </div>
-    </form>
-    <div id="result"></div>
-  </div>
 
-  <div class="webcam-section">
-    <h2>Or Use Your Camera</h2>
-    <video id="video" width="100%" autoplay></video>
-    <div class="webcam-buttons">
-      <button id="captureBtn">📸 Capture & Face Match</button>
-      <button id="captureAnalyzeBtn">🤖 Capture & AI Analyze</button>
-      <button id="captureComprehensiveBtn">⚡ Capture & Full Analysis</button>
-    </div>
-    <canvas id="canvas" style="display:none;"></canvas>
-  </div>
-  
-  <!-- Team Details Section 
-  <footer class="footer">
-    <h3>Team Members</h3>
-    <ul>
-      <li>Krishna Goyal</li>
-      <li>Achintya Srivastava</li>
-      <li>Mukund Maheshwari</li>
-      <li>Antra Agrawal</li>
-    </ul>
-    <p>AI-Powered Surveillance | Hackathon 2025</p>
-  </footer> -->
+      <!-- Biometric & AI Tab -->
+      <div id="biometricTab" class="tab-content active">
+        <form id="uploadForm" enctype="multipart/form-data">
+          <input type="file" name="image" id="imageInput" required />
+          <div class="button-group">
+            <button type="submit" id="matchBtn">🔍 Face Match Only</button>
+            <button type="button" id="analyzeBtn">🤖 AI Analysis Only</button>
+            <button type="button" id="comprehensiveBtn">⚡ Comprehensive Analysis</button>
+          </div>
+        </form>
+      </div>
 
-  <body>
-    <div class="content-wrapper">
-       <!-- All your main content here  -->
-       <!-- Footer stays outside container  -->
-      <footer class="footer">
-        <h3>Team Members</h3>
-        <ul>
-          <li>Krishna Goyal</li>
-          <li>Achintya Srivastava</li>
-          <li>Mukund Maheshwari</li>
-          <li>Antra Agrawal</li>
-        </ul>
-        <p>AI-Powered Surveillance | Hackathon 2025</p>
-      </footer>
+      <!-- Semantic Search Tab -->
+      <div id="semanticTab" class="tab-content">
+        <h3 style="color: #fff; margin-bottom: 15px; font-size: 15px; text-align: left;">Search by Text Description:</h3>
+        <div class="search-input-group">
+          <input type="text" id="textSearchInput" placeholder="e.g., person wearing a red shirt and black backpack" />
+          <button type="button" id="textSearchBtn">🔍 Search</button>
+        </div>
+
+        <div class="search-divider"></div>
+
+        <h3 style="color: #fff; margin-bottom: 15px; font-size: 15px; text-align: left;">Search by Visual Appearance (Image):</h3>
+        <form id="semanticUploadForm" enctype="multipart/form-data">
+          <input type="file" name="image" id="semanticImageInput" required />
+          <button type="button" id="imageSearchBtn" style="width: 100%; background-color: #00b894; margin-top: 10px;">👕 Search Appearance</button>
+        </form>
+      </div>
+      
+      <div id="result"></div>
     </div>
-  </body>
+
+    <!-- Webcam section placed outside the container panel -->
+    <div class="webcam-section" id="webcamSection">
+      <h2>Or Use Your Camera</h2>
+      <video id="video" width="100%" autoplay></video>
+      <div class="webcam-buttons">
+        <button id="captureBtn">📸 Capture & Face Match</button>
+        <button id="captureAnalyzeBtn">🤖 Capture & AI Analyze</button>
+        <button id="captureComprehensiveBtn">⚡ Capture & Full Analysis</button>
+      </div>
+      <canvas id="canvas" style="display:none;"></canvas>
+    </div>
+    
+    <footer class="footer">
+      <h3>Team Members</h3>
+      <ul>
+        <li>Krishna Goyal</li>
+        <li>Achintya Srivastava</li>
+        <li>Mukund Maheshwari</li>
+        <li>Antra Agrawal</li>
+      </ul>
+      <p>AI-Powered Surveillance | Hackathon 2025</p>
+    </footer>
+  </div>
   
 
   <script>
@@ -80,6 +87,138 @@
     const matchBtn = document.getElementById('matchBtn');
     const analyzeBtn = document.getElementById('analyzeBtn');
     const comprehensiveBtn = document.getElementById('comprehensiveBtn');
+
+    // Tab switching
+    const tabBiometric = document.getElementById('tabBiometric');
+    const tabSemantic = document.getElementById('tabSemantic');
+    const biometricTab = document.getElementById('biometricTab');
+    const semanticTab = document.getElementById('semanticTab');
+    const webcamSection = document.getElementById('webcamSection');
+
+    tabBiometric.addEventListener('click', () => {
+      tabBiometric.classList.add('active');
+      tabSemantic.classList.remove('active');
+      biometricTab.classList.add('active');
+      semanticTab.classList.remove('active');
+      webcamSection.style.display = 'block';
+      resultDiv.innerHTML = '';
+    });
+
+    tabSemantic.addEventListener('click', () => {
+      tabSemantic.classList.add('active');
+      tabBiometric.classList.remove('active');
+      semanticTab.classList.add('active');
+      biometricTab.classList.remove('active');
+      webcamSection.style.display = 'none';
+      resultDiv.innerHTML = '';
+    });
+
+    // Semantic Text Search
+    const textSearchInput = document.getElementById('textSearchInput');
+    const textSearchBtn = document.getElementById('textSearchBtn');
+
+    textSearchBtn.addEventListener('click', async () => {
+      const query = textSearchInput.value.trim();
+      if (!query) {
+        resultDiv.innerHTML = `<p class="error">⚠️ Please enter a search description first</p>`;
+        return;
+      }
+      await performSemanticSearch({ query });
+    });
+
+    // Semantic Image Search
+    const semanticImageInput = document.getElementById('semanticImageInput');
+    const imageSearchBtn = document.getElementById('imageSearchBtn');
+    const semanticUploadForm = document.getElementById('semanticUploadForm');
+
+    imageSearchBtn.addEventListener('click', async () => {
+      if (!semanticImageInput.files || semanticImageInput.files.length === 0) {
+        resultDiv.innerHTML = `<p class="error">⚠️ Please select a search image first</p>`;
+        return;
+      }
+      const formData = new FormData(semanticUploadForm);
+      await performSemanticSearch(formData, true);
+    });
+
+    async function performSemanticSearch(payload, isMultipart = false) {
+      resultDiv.innerHTML = `<p class="loading">🔄 Semantic Search in progress...</p>`;
+      
+      try {
+        let response;
+        if (isMultipart) {
+          response = await fetch('/search', {
+            method: 'POST',
+            body: payload
+          });
+        } else {
+          response = await fetch('/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          resultDiv.innerHTML = `<p class="error">⚠️ Invalid response from server. Please try again.</p>`;
+          return;
+        }
+
+        if (data.error) {
+          resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+          return;
+        }
+
+        if (data.status === 'success' && data.results) {
+          let resultsHTML = `
+            <div class="analysis-result">
+              <h3>🔎 Semantic Search Results</h3>
+              <p style="color: #ccc; font-size: 13px; margin-bottom: 15px; line-height: 1.4;">
+                <strong>Query analyzed:</strong> <em>"${data.search_query}"</em>
+              </p>
+          `;
+
+          if (data.results.length === 0) {
+            resultsHTML += `<p style="color: #ccc; text-align: center;">No reference images matched this description.</p>`;
+          } else {
+            resultsHTML += '<div style="max-height: 400px; overflow-y: auto;">';
+            
+            data.results.forEach((match) => {
+              // Determine match badge color
+              let badgeClass = 'match-low';
+              if (match.score >= 70) {
+                badgeClass = 'match-high';
+              } else if (match.score >= 40) {
+                badgeClass = 'match-med';
+              }
+
+              resultsHTML += `
+                <div class="semantic-result-card" style="border-left-color: ${match.score >= 70 ? '#4cd137' : match.score >= 40 ? '#ffa726' : '#e74c3c'};">
+                  <div class="semantic-result-header">
+                    <span class="semantic-image-name">${match.image}</span>
+                    <span class="match-badge ${badgeClass}">${match.score}% Match</span>
+                  </div>
+                  <p class="semantic-reason">${match.reason}</p>
+                </div>
+              `;
+            });
+
+            resultsHTML += '</div>';
+          }
+
+          resultsHTML += '</div>';
+          resultDiv.innerHTML = resultsHTML;
+        } else {
+          resultDiv.innerHTML = `<p class="error">⚠️ Search failed. Please try again.</p>`;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">⚠️ Network Error: ${error.message}</p>`;
+      }
+    }
 
     // Face match only
     matchBtn.addEventListener('click', async (e) => {
