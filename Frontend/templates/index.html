@@ -10,14 +10,7 @@
   <div class="content-wrapper">
 
     <div class="container">
-      <!-- <h1>Find Missing Person</h1> -->
-      <h1 id="wavy">
-        <span>F</span><span>i</span><span>n</span><span>d</span>
-        <span>&nbsp;</span>
-        <span>M</span><span>i</span><span>s</span><span>s</span><span>i</span><span>n</span><span>g</span>
-        <span>&nbsp;</span>
-        <span>P</span><span>e</span><span>r</span><span>s</span><span>o</span><span>n</span>
-      </h1>
+      <h1 id="wavy">Find Missing Person</h1>
 
       <div class="tabs">
         <button class="tab-btn active" id="tabBiometric">👤 Biometric & AI</button>
@@ -34,6 +27,7 @@
             <button type="button" id="comprehensiveBtn">⚡ Comprehensive Analysis</button>
           </div>
         </form>
+        <div id="biometricResult"></div>
       </div>
 
       <!-- Semantic Search Tab -->
@@ -43,6 +37,7 @@
           <input type="text" id="textSearchInput" placeholder="e.g., person wearing a red shirt and black backpack" />
           <button type="button" id="textSearchBtn">🔍 Search</button>
         </div>
+        <div id="semanticTextResult"></div>
 
         <div class="search-divider"></div>
 
@@ -51,9 +46,8 @@
           <input type="file" name="image" id="semanticImageInput" required />
           <button type="button" id="imageSearchBtn" style="width: 100%; background-color: #00b894; margin-top: 10px;">👕 Search Appearance</button>
         </form>
+        <div id="semanticImageResult"></div>
       </div>
-      
-      <div id="result"></div>
     </div>
 
     <!-- Webcam section placed outside the container panel -->
@@ -66,6 +60,7 @@
         <button id="captureComprehensiveBtn">⚡ Capture & Full Analysis</button>
       </div>
       <canvas id="canvas" style="display:none;"></canvas>
+      <div id="webcamResult"></div>
     </div>
     
     <footer class="footer">
@@ -82,11 +77,65 @@
   
 
   <script>
+    // Dynamically build staggered wavy text animation spans
+    document.addEventListener('DOMContentLoaded', () => {
+      const wavyHeader = document.getElementById('wavy');
+      if (wavyHeader) {
+        const text = wavyHeader.textContent.trim();
+        wavyHeader.innerHTML = '';
+        [...text].forEach((char, index) => {
+          const span = document.createElement('span');
+          span.innerHTML = char === ' ' ? '&nbsp;' : char;
+          span.style.animationDelay = `${index * 0.1}s`;
+          wavyHeader.appendChild(span);
+        });
+      }
+    });
+
     const form = document.getElementById('uploadForm');
-    const resultDiv = document.getElementById('result');
+    const biometricResult = document.getElementById('biometricResult');
+    const semanticTextResult = document.getElementById('semanticTextResult');
+    const semanticImageResult = document.getElementById('semanticImageResult');
+    const webcamResult = document.getElementById('webcamResult');
     const matchBtn = document.getElementById('matchBtn');
     const analyzeBtn = document.getElementById('analyzeBtn');
     const comprehensiveBtn = document.getElementById('comprehensiveBtn');
+
+    function showProgressBar(message, targetDiv) {
+      targetDiv.innerHTML = `
+        <div class="loading-wrapper">
+          <p class="progress-text">🔄 ${message}</p>
+          <div class="progress-container">
+            <div id="loadingProgressBar" class="progress-bar"></div>
+          </div>
+        </div>
+      `;
+      
+      const progressBar = targetDiv.querySelector('#loadingProgressBar');
+      let width = 0;
+      // Increment progress bar to simulate loading state
+      const interval = setInterval(() => {
+        if (width < 90) {
+          width += Math.random() * 8 + 2; // Increments of 2% to 10%
+          if (width > 90) width = 90;
+          if (progressBar) {
+            progressBar.style.width = width + '%';
+          }
+        }
+      }, 350);
+      
+      return {
+        finish: () => {
+          clearInterval(interval);
+          if (progressBar) {
+            progressBar.style.width = '100%';
+          }
+        },
+        cancel: () => {
+          clearInterval(interval);
+        }
+      };
+    }
 
     // Tab switching
     const tabBiometric = document.getElementById('tabBiometric');
@@ -101,7 +150,8 @@
       biometricTab.classList.add('active');
       semanticTab.classList.remove('active');
       webcamSection.style.display = 'block';
-      resultDiv.innerHTML = '';
+      biometricResult.innerHTML = '';
+      webcamResult.innerHTML = '';
     });
 
     tabSemantic.addEventListener('click', () => {
@@ -110,7 +160,8 @@
       semanticTab.classList.add('active');
       biometricTab.classList.remove('active');
       webcamSection.style.display = 'none';
-      resultDiv.innerHTML = '';
+      semanticTextResult.innerHTML = '';
+      semanticImageResult.innerHTML = '';
     });
 
     // Semantic Text Search
@@ -120,10 +171,10 @@
     textSearchBtn.addEventListener('click', async () => {
       const query = textSearchInput.value.trim();
       if (!query) {
-        resultDiv.innerHTML = `<p class="error">⚠️ Please enter a search description first</p>`;
+        semanticTextResult.innerHTML = `<p class="error">⚠️ Please enter a search description first</p>`;
         return;
       }
-      await performSemanticSearch({ query });
+      await performSemanticSearch({ query }, false, semanticTextResult);
     });
 
     // Semantic Image Search
@@ -133,15 +184,15 @@
 
     imageSearchBtn.addEventListener('click', async () => {
       if (!semanticImageInput.files || semanticImageInput.files.length === 0) {
-        resultDiv.innerHTML = `<p class="error">⚠️ Please select a search image first</p>`;
+        semanticImageResult.innerHTML = `<p class="error">⚠️ Please select a search image first</p>`;
         return;
       }
       const formData = new FormData(semanticUploadForm);
-      await performSemanticSearch(formData, true);
+      await performSemanticSearch(formData, true, semanticImageResult);
     });
 
-    async function performSemanticSearch(payload, isMultipart = false) {
-      resultDiv.innerHTML = `<p class="loading">🔄 Semantic Search in progress...</p>`;
+    async function performSemanticSearch(payload, isMultipart = false, targetResultDiv) {
+      const progress = showProgressBar("Semantic Search in progress...", targetResultDiv);
       
       try {
         let response;
@@ -164,59 +215,65 @@
         try {
           data = await response.json();
         } catch (jsonError) {
-          resultDiv.innerHTML = `<p class="error">⚠️ Invalid response from server. Please try again.</p>`;
+          progress.cancel();
+          targetResultDiv.innerHTML = `<p class="error">⚠️ Invalid response from server. Please try again.</p>`;
           return;
         }
 
         if (data.error) {
-          resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+          progress.cancel();
+          targetResultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
           return;
         }
 
         if (data.status === 'success' && data.results) {
-          let resultsHTML = `
-            <div class="analysis-result">
-              <h3>🔎 Semantic Search Results</h3>
-              <p style="color: #ccc; font-size: 13px; margin-bottom: 15px; line-height: 1.4;">
-                <strong>Query analyzed:</strong> <em>"${data.search_query}"</em>
-              </p>
-          `;
+          progress.finish();
+          setTimeout(() => {
+            let resultsHTML = `
+              <div class="analysis-result">
+                <h3>🔎 Semantic Search Results</h3>
+                <p style="color: #ccc; font-size: 13px; margin-bottom: 15px; line-height: 1.4;">
+                  <strong>Query analyzed:</strong> <em>"${data.search_query}"</em>
+                </p>
+            `;
 
-          if (data.results.length === 0) {
-            resultsHTML += `<p style="color: #ccc; text-align: center;">No reference images matched this description.</p>`;
-          } else {
-            resultsHTML += '<div style="max-height: 400px; overflow-y: auto;">';
-            
-            data.results.forEach((match) => {
-              // Determine match badge color
-              let badgeClass = 'match-low';
-              if (match.score >= 70) {
-                badgeClass = 'match-high';
-              } else if (match.score >= 40) {
-                badgeClass = 'match-med';
-              }
+            if (data.results.length === 0) {
+              resultsHTML += `<p style="color: #ccc; text-align: center;">No reference images matched this description.</p>`;
+            } else {
+              resultsHTML += '<div style="max-height: 400px; overflow-y: auto;">';
+              
+              data.results.forEach((match) => {
+                let badgeClass = 'match-low';
+                if (match.score >= 70) {
+                  badgeClass = 'match-high';
+                } else if (match.score >= 40) {
+                  badgeClass = 'match-med';
+                }
 
-              resultsHTML += `
-                <div class="semantic-result-card" style="border-left-color: ${match.score >= 70 ? '#4cd137' : match.score >= 40 ? '#ffa726' : '#e74c3c'};">
-                  <div class="semantic-result-header">
-                    <span class="semantic-image-name">${match.image}</span>
-                    <span class="match-badge ${badgeClass}">${match.score}% Match</span>
+                resultsHTML += `
+                  <div class="semantic-result-card" style="border-left-color: ${match.score >= 70 ? '#4cd137' : match.score >= 40 ? '#ffa726' : '#e74c3c'};">
+                    <div class="semantic-result-header">
+                      <span class="semantic-image-name">${match.image}</span>
+                      <span class="match-badge ${badgeClass}">${match.score}% Match</span>
+                    </div>
+                    <p class="semantic-reason">${match.reason}</p>
                   </div>
-                  <p class="semantic-reason">${match.reason}</p>
-                </div>
-              `;
-            });
+                `;
+              });
+
+              resultsHTML += '</div>';
+            }
 
             resultsHTML += '</div>';
-          }
-
-          resultsHTML += '</div>';
-          resultDiv.innerHTML = resultsHTML;
+            targetResultDiv.innerHTML = resultsHTML;
+          }, 300);
         } else {
-          resultDiv.innerHTML = `<p class="error">⚠️ Search failed. Please try again.</p>`;
+          progress.cancel();
+          targetResultDiv.innerHTML = `<p class="error">⚠️ Search failed. Please try again.</p>`;
         }
       } catch (error) {
-        resultDiv.innerHTML = `<p class="error">⚠️ Network Error: ${error.message}</p>`;
+        progress.cancel();
+        targetResultDiv.innerHTML = `<p class="error">⚠️ Network Error: ${error.message}</p>`;
       }
     }
 
@@ -241,12 +298,12 @@
     async function performAnalysis(endpoint, analysisType) {
       const fileInput = document.getElementById('imageInput');
       if (!fileInput.files || fileInput.files.length === 0) {
-        resultDiv.innerHTML = `<p class="error">⚠️ Please select an image first</p>`;
+        biometricResult.innerHTML = `<p class="error">⚠️ Please select an image first</p>`;
         return;
       }
 
       const formData = new FormData(form);
-      resultDiv.innerHTML = `<p class="loading">🔄 ${analysisType} in progress...</p>`;
+      const progress = showProgressBar(`${analysisType} in progress...`, biometricResult);
 
       try {
         const response = await fetch(endpoint, {
@@ -258,159 +315,175 @@
         try {
           data = await response.json();
         } catch (jsonError) {
-          resultDiv.innerHTML = `<p class="error">⚠️ Invalid response from server. Please try again.</p>`;
+          progress.cancel();
+          biometricResult.innerHTML = `<p class="error">⚠️ Invalid response from server. Please try again.</p>`;
           return;
         }
 
         if (endpoint === '/match') {
           if (data.error) {
-            resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+            progress.cancel();
+            biometricResult.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
           } else if (data.all_comparisons && data.all_comparisons.length > 0) {
-            // Display all comparison results
-            const totalCompared = data.total_compared || data.all_comparisons.length;
-            const matchesFound = data.all_comparisons.filter(c => c.match_found).length;
-            
-            let resultsHTML = `
-              <div class="analysis-result">
-                <h3>🔍 Face Matching Results</h3>
-                <p style="color: #ccc; font-size: 14px; margin-bottom: 15px;">
-                  Compared against ${totalCompared} image(s) | 
-                  ${matchesFound > 0 ? `<span style="color: #4cd137;">${matchesFound} match(es) found</span>` : '<span style="color: #e74c3c;">No matches</span>'}
-                </p>
-            `;
-            
-            if (data.best_match && data.best_match.match_found) {
-              resultsHTML += `
-                <div style="background: rgba(76, 209, 55, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #4cd137;">
-                  <p style="color: #4cd137; font-weight: bold; margin-bottom: 5px;">✅ Best Match Found!</p>
-                  <p style="color: #ccc; font-size: 13px;">Image: <strong>${data.best_match.image}</strong></p>
-                  <p style="color: #ccc; font-size: 13px;">Confidence: <strong>${data.best_match.confidence}%</strong> | Distance: ${data.best_match.distance}</p>
-                </div>
-              `;
-            }
-            
-            resultsHTML += '<div style="max-height: 400px; overflow-y: auto;"><h4 style="color: #f2f2f2; font-size: 14px; margin-bottom: 10px;">All Comparisons:</h4>';
-            
-            data.all_comparisons.forEach((comp, index) => {
-              const matchClass = comp.match_found ? 'success' : 'error';
-              const matchIcon = comp.match_found ? '✅' : '❌';
-              const matchColor = comp.match_found ? '#4cd137' : '#e74c3c';
-              
-              resultsHTML += `
-                <div style="background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ${matchColor};">
-                  <p style="color: ${matchColor}; font-size: 13px; margin-bottom: 5px;">
-                    ${matchIcon} ${comp.match_found ? 'Match' : 'No Match'} - ${comp.image}
-                  </p>
-                  <p style="color: #ccc; font-size: 12px; margin: 0;">
-                    Distance: ${comp.distance !== null ? comp.distance : 'N/A'} | 
-                    Confidence: ${comp.confidence}%
-                    ${comp.error ? `<br><span style="color: #ffa726;">Error: ${comp.error}</span>` : ''}
-                  </p>
-                </div>
-              `;
-            });
-            
-            resultsHTML += '</div></div>';
-            resultDiv.innerHTML = resultsHTML;
-          } else {
-            resultDiv.innerHTML = `<p class="error">⚠️ No comparison results available</p>`;
-          }
-        } else if (endpoint === '/analyze') {
-          if (data.status === 'success' && data.analysis) {
-            resultDiv.innerHTML = `
-              <div class="analysis-result">
-                <h3>🤖 AI Analysis Results</h3>
-                <div class="analysis-content">${data.analysis.replace(/\n/g, '<br>')}</div>
-              </div>
-            `;
-          } else if (data.error) {
-            resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
-          } else {
-            resultDiv.innerHTML = `<p class="error">⚠️ Analysis failed. Please try again.</p>`;
-          }
-        } else if (endpoint === '/comprehensive') {
-          if (data.status === 'success') {
-            let faceMatchHTML = '';
-            
-            if (data.all_comparisons && data.all_comparisons.length > 0) {
-              const matchesFound = data.all_comparisons.filter(c => c.match_found).length;
+            progress.finish();
+            setTimeout(() => {
               const totalCompared = data.total_compared || data.all_comparisons.length;
+              const matchesFound = data.all_comparisons.filter(c => c.match_found).length;
               
-              faceMatchHTML = `
-                <h4>Face Matching (${totalCompared} images compared):</h4>
-                <p style="color: ${data.face_match ? '#4cd137' : '#e74c3c'};">
-                  ${data.face_match ? '✅ Match Found' : '❌ No Match'} 
-                  ${matchesFound > 0 ? `(${matchesFound} match${matchesFound > 1 ? 'es' : ''} found)` : ''}
-                </p>
+              let resultsHTML = `
+                <div class="analysis-result">
+                  <h3>🔍 Face Matching Results</h3>
+                  <p style="color: #ccc; font-size: 14px; margin-bottom: 15px;">
+                    Compared against ${totalCompared} image(s) | 
+                    ${matchesFound > 0 ? `<span style="color: #4cd137;">${matchesFound} match(es) found</span>` : '<span style="color: #e74c3c;">No matches</span>'}
+                  </p>
               `;
               
               if (data.best_match && data.best_match.match_found) {
-                faceMatchHTML += `
-                  <div style="background: rgba(76, 209, 55, 0.1); padding: 10px; border-radius: 6px; margin-top: 10px; border-left: 3px solid #4cd137;">
-                    <p style="color: #4cd137; font-size: 13px; margin-bottom: 5px;"><strong>Best Match:</strong> ${data.best_match.image}</p>
-                    <p style="color: #ccc; font-size: 12px;">Confidence: ${data.best_match.confidence}% | Distance: ${data.best_match.distance}</p>
+                resultsHTML += `
+                  <div style="background: rgba(76, 209, 55, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #4cd137;">
+                    <p style="color: #4cd137; font-weight: bold; margin-bottom: 5px;">✅ Best Match Found!</p>
+                    <p style="color: #ccc; font-size: 13px;">Image: <strong>${data.best_match.image}</strong></p>
+                    <p style="color: #ccc; font-size: 13px;">Confidence: <strong>${data.best_match.confidence}%</strong> | Distance: ${data.best_match.distance}</p>
                   </div>
                 `;
               }
               
-              if (data.all_comparisons.length > 0) {
-                faceMatchHTML += '<div style="max-height: 200px; overflow-y: auto; margin-top: 10px;"><p style="color: #ccc; font-size: 12px; margin-bottom: 5px;">All comparisons:</p>';
-                data.all_comparisons.slice(0, 5).forEach(comp => {
-                  const matchColor = comp.match_found ? '#4cd137' : '#e74c3c';
-                  faceMatchHTML += `
-                    <p style="color: ${matchColor}; font-size: 11px; margin: 3px 0;">
-                      ${comp.match_found ? '✅' : '❌'} ${comp.image}: ${comp.confidence}% (${comp.distance || 'N/A'})
+              resultsHTML += '<div style="max-height: 400px; overflow-y: auto;"><h4 style="color: #f2f2f2; font-size: 14px; margin-bottom: 10px;">All Comparisons:</h4>';
+              
+              data.all_comparisons.forEach((comp, index) => {
+                const matchClass = comp.match_found ? 'success' : 'error';
+                const matchIcon = comp.match_found ? '✅' : '❌';
+                const matchColor = comp.match_found ? '#4cd137' : '#e74c3c';
+                
+                resultsHTML += `
+                  <div style="background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ${matchColor};">
+                    <p style="color: ${matchColor}; font-size: 13px; margin-bottom: 5px;">
+                      ${matchIcon} ${comp.match_found ? 'Match' : 'No Match'} - ${comp.image}
                     </p>
-                  `;
-                });
-                if (data.all_comparisons.length > 5) {
-                  faceMatchHTML += `<p style="color: #ccc; font-size: 11px;">... and ${data.all_comparisons.length - 5} more</p>`;
-                }
-                faceMatchHTML += '</div>';
-              }
-            } else {
-              const faceMatchStatus = data.face_match === true ? 
-                '<span class="success">✅ Match Found</span>' : 
-                '<span class="error">❌ No Match</span>';
+                    <p style="color: #ccc; font-size: 12px; margin: 0;">
+                      Distance: ${comp.distance !== null ? comp.distance : 'N/A'} | 
+                      Confidence: ${comp.confidence}%
+                      ${comp.error ? `<br><span style="color: #ffa726;">Error: ${comp.error}</span>` : ''}
+                    </p>
+                  </div>
+                `;
+              });
               
-              const faceMatchError = data.face_match_error ? 
-                `<p style="color: #ffa726; font-size: 12px; margin-top: 5px;">Note: ${data.face_match_error}</p>` : '';
-              
-              const confidenceInfo = data.face_match_confidence !== undefined ? 
-                `<p style="color: #4cd137; font-size: 12px; margin-top: 5px;">Confidence: ${data.face_match_confidence}% (Distance: ${data.face_match_distance})</p>` : '';
-              
-              faceMatchHTML = `
-                <h4>Face Matching:</h4>
-                <p>${faceMatchStatus}</p>
-                ${confidenceInfo}
-                ${faceMatchError}
-              `;
-            }
-            
-            const aiAnalysis = data.ai_analysis ? 
-              `<div class="analysis-content">${data.ai_analysis.replace(/\n/g, '<br>')}</div>` :
-              '<div class="analysis-content">AI analysis unavailable</div>';
-            
-            resultDiv.innerHTML = `
-              <div class="comprehensive-result">
-                <h3>⚡ Comprehensive Analysis Results</h3>
-                <div class="face-match-result">
-                  ${faceMatchHTML}
-                </div>
-                <div class="ai-analysis-result">
-                  <h4>AI Analysis:</h4>
-                  ${aiAnalysis}
-                </div>
-              </div>
-            `;
-          } else if (data.error) {
-            resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+              resultsHTML += '</div></div>';
+              biometricResult.innerHTML = resultsHTML;
+            }, 300);
           } else {
-            resultDiv.innerHTML = `<p class="error">⚠️ Analysis failed. Please try again.</p>`;
+            progress.cancel();
+            biometricResult.innerHTML = `<p class="error">⚠️ No comparison results available</p>`;
+          }
+        } else if (endpoint === '/analyze') {
+          if (data.status === 'success' && data.analysis) {
+            progress.finish();
+            setTimeout(() => {
+              biometricResult.innerHTML = `
+                <div class="analysis-result">
+                  <h3>🤖 AI Analysis Results</h3>
+                  <div class="analysis-content">${data.analysis.replace(/\n/g, '<br>')}</div>
+                </div>
+              `;
+            }, 300);
+          } else if (data.error) {
+            progress.cancel();
+            biometricResult.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+          } else {
+            progress.cancel();
+            biometricResult.innerHTML = `<p class="error">⚠️ Analysis failed. Please try again.</p>`;
+          }
+        } else if (endpoint === '/comprehensive') {
+          if (data.status === 'success') {
+            progress.finish();
+            setTimeout(() => {
+              let faceMatchHTML = '';
+              
+              if (data.all_comparisons && data.all_comparisons.length > 0) {
+                const matchesFound = data.all_comparisons.filter(c => c.match_found).length;
+                const totalCompared = data.total_compared || data.all_comparisons.length;
+                
+                faceMatchHTML = `
+                  <h4>Face Matching (${totalCompared} images compared):</h4>
+                  <p style="color: ${data.face_match ? '#4cd137' : '#e74c3c'};">
+                    ${data.face_match ? '✅ Match Found' : '❌ No Match'} 
+                    ${matchesFound > 0 ? `(${matchesFound} match${matchesFound > 1 ? 'es' : ''} found)` : ''}
+                  </p>
+                `;
+                
+                if (data.best_match && data.best_match.match_found) {
+                  faceMatchHTML += `
+                    <div style="background: rgba(76, 209, 55, 0.1); padding: 10px; border-radius: 6px; margin-top: 10px; border-left: 3px solid #4cd137;">
+                      <p style="color: #4cd137; font-size: 13px; margin-bottom: 5px;"><strong>Best Match:</strong> ${data.best_match.image}</p>
+                      <p style="color: #ccc; font-size: 12px;">Confidence: ${data.best_match.confidence}% | Distance: ${data.best_match.distance}</p>
+                    </div>
+                  `;
+                }
+                
+                if (data.all_comparisons.length > 0) {
+                  faceMatchHTML += '<div style="max-height: 200px; overflow-y: auto; margin-top: 10px;"><p style="color: #ccc; font-size: 12px; margin-bottom: 5px;">All comparisons:</p>';
+                  data.all_comparisons.slice(0, 5).forEach(comp => {
+                    const matchColor = comp.match_found ? '#4cd137' : '#e74c3c';
+                    faceMatchHTML += `
+                      <p style="color: ${matchColor}; font-size: 11px; margin: 3px 0;">
+                        ${comp.match_found ? '✅' : '❌'} ${comp.image}: ${comp.confidence}% (${comp.distance || 'N/A'})
+                      </p>
+                    `;
+                  });
+                  if (data.all_comparisons.length > 5) {
+                    faceMatchHTML += `<p style="color: #ccc; font-size: 11px;">... and ${data.all_comparisons.length - 5} more</p>`;
+                  }
+                  faceMatchHTML += '</div>';
+                }
+              } else {
+                const faceMatchStatus = data.face_match === true ? 
+                  '<span class="success">✅ Match Found</span>' : 
+                  '<span class="error">❌ No Match</span>';
+                
+                const faceMatchError = data.face_match_error ? 
+                  `<p style="color: #ffa726; font-size: 12px; margin-top: 5px;">Note: ${data.face_match_error}</p>` : '';
+                
+                const confidenceInfo = data.face_match_confidence !== undefined ? 
+                  `<p style="color: #4cd137; font-size: 12px; margin-top: 5px;">Confidence: ${data.face_match_confidence}% (Distance: ${data.face_match_distance})</p>` : '';
+                
+                faceMatchHTML = `
+                  <h4>Face Matching:</h4>
+                  <p>${faceMatchStatus}</p>
+                  ${confidenceInfo}
+                  ${faceMatchError}
+                `;
+              }
+              
+              const aiAnalysis = data.ai_analysis ? 
+                `<div class="analysis-content">${data.ai_analysis.replace(/\n/g, '<br>')}</div>` :
+                '<div class="analysis-content">AI analysis unavailable</div>';
+              
+              biometricResult.innerHTML = `
+                <div class="comprehensive-result">
+                  <h3>⚡ Comprehensive Analysis Results</h3>
+                  <div class="face-match-result">
+                    ${faceMatchHTML}
+                  </div>
+                  <div class="ai-analysis-result">
+                    <h4>AI Analysis:</h4>
+                    ${aiAnalysis}
+                  </div>
+                </div>
+              `;
+            }, 300);
+          } else if (data.error) {
+            progress.cancel();
+            biometricResult.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+          } else {
+            progress.cancel();
+            biometricResult.innerHTML = `<p class="error">⚠️ Analysis failed. Please try again.</p>`;
           }
         }
       } catch (error) {
-        resultDiv.innerHTML = `<p class="error">⚠️ Network Error: ${error.message}</p>`;
+        progress.cancel();
+        biometricResult.innerHTML = `<p class="error">⚠️ Network Error: ${error.message}</p>`;
       }
     }
   </script>
@@ -421,9 +494,9 @@
       const captureBtn = document.getElementById('captureBtn');
       const captureAnalyzeBtn = document.getElementById('captureAnalyzeBtn');
       const captureComprehensiveBtn = document.getElementById('captureComprehensiveBtn');
-      const resultDiv = document.getElementById('result');
+      const webcamResult = document.getElementById('webcamResult');
     
-      if (!video || !canvas || !captureBtn || !resultDiv) {
+      if (!video || !canvas || !captureBtn || !webcamResult) {
         console.error("Missing one or more required DOM elements.");
         return;
       }
@@ -454,7 +527,7 @@
 
       async function captureAndAnalyze(endpoint, analysisType) {
         if (!video.videoWidth || !video.videoHeight) {
-          resultDiv.innerHTML = `<p class="error">⚠️ Please wait for camera to initialize</p>`;
+          webcamResult.innerHTML = `<p class="error">⚠️ Please wait for camera to initialize</p>`;
           return;
         }
 
@@ -467,13 +540,13 @@
         // Convert canvas to Blob
         canvas.toBlob(async (blob) => {
           if (!blob) {
-            resultDiv.innerHTML = `<p class="error">⚠️ Failed to capture image</p>`;
+            webcamResult.innerHTML = `<p class="error">⚠️ Failed to capture image</p>`;
             return;
           }
 
           const formData = new FormData();
           formData.append('image', blob, 'capture.jpg');
-          resultDiv.innerHTML = `<p class="loading">🔄 ${analysisType} in progress...</p>`;
+          const progress = showProgressBar(`${analysisType} in progress...`, webcamResult);
     
           try {
             const response = await fetch(endpoint, {
@@ -485,120 +558,136 @@
             try {
               data = await response.json();
             } catch (jsonError) {
-              resultDiv.innerHTML = `<p class="error">⚠️ Invalid response from server. Please try again.</p>`;
+              progress.cancel();
+              webcamResult.innerHTML = `<p class="error">⚠️ Invalid response from server. Please try again.</p>`;
               return;
             }
     
             if (endpoint === '/match') {
               if (data.error) {
-                resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+                progress.cancel();
+                webcamResult.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
               } else if (data.all_comparisons && data.all_comparisons.length > 0) {
-                // Display all comparison results
-                const totalCompared = data.total_compared || data.all_comparisons.length;
-                const matchesFound = data.all_comparisons.filter(c => c.match_found).length;
-                
-                let resultsHTML = `
-                  <div class="analysis-result">
-                    <h3>🔍 Face Matching Results</h3>
-                    <p style="color: #ccc; font-size: 14px; margin-bottom: 15px;">
-                      Compared against ${totalCompared} image(s) | 
-                      ${matchesFound > 0 ? `<span style="color: #4cd137;">${matchesFound} match(es) found</span>` : '<span style="color: #e74c3c;">No matches</span>'}
-                    </p>
-                `;
-                
-                if (data.best_match && data.best_match.match_found) {
-                  resultsHTML += `
-                    <div style="background: rgba(76, 209, 55, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #4cd137;">
-                      <p style="color: #4cd137; font-weight: bold; margin-bottom: 5px;">✅ Best Match Found!</p>
-                      <p style="color: #ccc; font-size: 13px;">Image: <strong>${data.best_match.image}</strong></p>
-                      <p style="color: #ccc; font-size: 13px;">Confidence: <strong>${data.best_match.confidence}%</strong> | Distance: ${data.best_match.distance}</p>
-                    </div>
-                  `;
-                }
-                
-                resultsHTML += '<div style="max-height: 400px; overflow-y: auto;"><h4 style="color: #f2f2f2; font-size: 14px; margin-bottom: 10px;">All Comparisons:</h4>';
-                
-                data.all_comparisons.forEach((comp, index) => {
-                  const matchClass = comp.match_found ? 'success' : 'error';
-                  const matchIcon = comp.match_found ? '✅' : '❌';
-                  const matchColor = comp.match_found ? '#4cd137' : '#e74c3c';
+                progress.finish();
+                setTimeout(() => {
+                  const totalCompared = data.total_compared || data.all_comparisons.length;
+                  const matchesFound = data.all_comparisons.filter(c => c.match_found).length;
                   
-                  resultsHTML += `
-                    <div style="background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ${matchColor};">
-                      <p style="color: ${matchColor}; font-size: 13px; margin-bottom: 5px;">
-                        ${matchIcon} ${comp.match_found ? 'Match' : 'No Match'} - ${comp.image}
+                  let resultsHTML = `
+                    <div class="analysis-result">
+                      <h3>🔍 Face Matching Results</h3>
+                      <p style="color: #ccc; font-size: 14px; margin-bottom: 15px;">
+                        Compared against ${totalCompared} image(s) | 
+                        ${matchesFound > 0 ? `<span style="color: #4cd137;">${matchesFound} match(es) found</span>` : '<span style="color: #e74c3c;">No matches</span>'}
                       </p>
-                      <p style="color: #ccc; font-size: 12px; margin: 0;">
-                        Distance: ${comp.distance !== null ? comp.distance : 'N/A'} | 
-                        Confidence: ${comp.confidence}%
-                        ${comp.error ? `<br><span style="color: #ffa726;">Error: ${comp.error}</span>` : ''}
-                      </p>
-                    </div>
                   `;
-                });
-                
-                resultsHTML += '</div></div>';
-                resultDiv.innerHTML = resultsHTML;
+                  
+                  if (data.best_match && data.best_match.match_found) {
+                    resultsHTML += `
+                      <div style="background: rgba(76, 209, 55, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #4cd137;">
+                        <p style="color: #4cd137; font-weight: bold; margin-bottom: 5px;">✅ Best Match Found!</p>
+                        <p style="color: #ccc; font-size: 13px;">Image: <strong>${data.best_match.image}</strong></p>
+                        <p style="color: #ccc; font-size: 13px;">Confidence: <strong>${data.best_match.confidence}%</strong> | Distance: ${data.best_match.distance}</p>
+                      </div>
+                    `;
+                  }
+                  
+                  resultsHTML += '<div style="max-height: 400px; overflow-y: auto;"><h4 style="color: #f2f2f2; font-size: 14px; margin-bottom: 10px;">All Comparisons:</h4>';
+                  
+                  data.all_comparisons.forEach((comp, index) => {
+                    const matchClass = comp.match_found ? 'success' : 'error';
+                    const matchIcon = comp.match_found ? '✅' : '❌';
+                    const matchColor = comp.match_found ? '#4cd137' : '#e74c3c';
+                    
+                    resultsHTML += `
+                      <div style="background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ${matchColor};">
+                        <p style="color: ${matchColor}; font-size: 13px; margin-bottom: 5px;">
+                          ${matchIcon} ${comp.match_found ? 'Match' : 'No Match'} - ${comp.image}
+                        </p>
+                        <p style="color: #ccc; font-size: 12px; margin: 0;">
+                          Distance: ${comp.distance !== null ? comp.distance : 'N/A'} | 
+                          Confidence: ${comp.confidence}%
+                          ${comp.error ? `<br><span style="color: #ffa726;">Error: ${comp.error}</span>` : ''}
+                        </p>
+                      </div>
+                    `;
+                  });
+                  
+                  resultsHTML += '</div></div>';
+                  webcamResult.innerHTML = resultsHTML;
+                }, 300);
               } else {
-                resultDiv.innerHTML = `<p class="error">⚠️ No comparison results available</p>`;
+                progress.cancel();
+                webcamResult.innerHTML = `<p class="error">⚠️ No comparison results available</p>`;
               }
             } else if (endpoint === '/analyze') {
               if (data.status === 'success' && data.analysis) {
-                resultDiv.innerHTML = `
-                  <div class="analysis-result">
-                    <h3>🤖 AI Analysis Results</h3>
-                    <div class="analysis-content">${data.analysis.replace(/\n/g, '<br>')}</div>
-                  </div>
-                `;
+                progress.finish();
+                setTimeout(() => {
+                  webcamResult.innerHTML = `
+                    <div class="analysis-result">
+                      <h3>🤖 AI Analysis Results</h3>
+                      <div class="analysis-content">${data.analysis.replace(/\n/g, '<br>')}</div>
+                    </div>
+                  `;
+                }, 300);
               } else if (data.error) {
-                resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+                progress.cancel();
+                webcamResult.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
               } else {
-                resultDiv.innerHTML = `<p class="error">⚠️ Analysis failed. Please try again.</p>`;
+                progress.cancel();
+                webcamResult.innerHTML = `<p class="error">⚠️ Analysis failed. Please try again.</p>`;
               }
             } else if (endpoint === '/comprehensive') {
               if (data.status === 'success') {
-                const faceMatchStatus = data.face_match === true ? 
-                  '<span class="success">✅ Match Found</span>' : 
-                  '<span class="error">❌ No Match</span>';
-                
-                const faceMatchError = data.face_match_error ? 
-                  `<p style="color: #ffa726; font-size: 12px; margin-top: 5px;">Note: ${data.face_match_error}</p>` : '';
-                
-                const confidenceInfo = data.face_match_confidence !== undefined ? 
-                  `<p style="color: #4cd137; font-size: 12px; margin-top: 5px;">Confidence: ${data.face_match_confidence}% (Distance: ${data.face_match_distance})</p>` : '';
-                
-                const aiAnalysis = data.ai_analysis ? 
-                  `<div class="analysis-content">${data.ai_analysis.replace(/\n/g, '<br>')}</div>` :
-                  '<div class="analysis-content">AI analysis unavailable</div>';
-                
-                resultDiv.innerHTML = `
-                  <div class="comprehensive-result">
-                    <h3>⚡ Comprehensive Analysis Results</h3>
-                    <div class="face-match-result">
-                      <h4>Face Matching:</h4>
-                      <p>${faceMatchStatus}</p>
-                      ${confidenceInfo}
-                      ${faceMatchError}
+                progress.finish();
+                setTimeout(() => {
+                  const faceMatchStatus = data.face_match === true ? 
+                    '<span class="success">✅ Match Found</span>' : 
+                    '<span class="error">❌ No Match</span>';
+                  
+                  const faceMatchError = data.face_match_error ? 
+                    `<p style="color: #ffa726; font-size: 12px; margin-top: 5px;">Note: ${data.face_match_error}</p>` : '';
+                  
+                  const confidenceInfo = data.face_match_confidence !== undefined ? 
+                    `<p style="color: #4cd137; font-size: 12px; margin-top: 5px;">Confidence: ${data.face_match_confidence}% (Distance: ${data.face_match_distance})</p>` : '';
+                  
+                  const aiAnalysis = data.ai_analysis ? 
+                    `<div class="analysis-content">${data.ai_analysis.replace(/\n/g, '<br>')}</div>` :
+                    '<div class="analysis-content">AI analysis unavailable</div>';
+                  
+                  webcamResult.innerHTML = `
+                    <div class="comprehensive-result">
+                      <h3>⚡ Comprehensive Analysis Results</h3>
+                      <div class="face-match-result">
+                        <h4>Face Matching:</h4>
+                        <p>${faceMatchStatus}</p>
+                        ${confidenceInfo}
+                        ${faceMatchError}
+                      </div>
+                      <div class="ai-analysis-result">
+                        <h4>AI Analysis:</h4>
+                        ${aiAnalysis}
+                      </div>
                     </div>
-                    <div class="ai-analysis-result">
-                      <h4>AI Analysis:</h4>
-                      ${aiAnalysis}
-                    </div>
-                  </div>
-                `;
+                  `;
+                }, 300);
               } else if (data.error) {
-                resultDiv.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
+                progress.cancel();
+                webcamResult.innerHTML = `<p class="error">⚠️ Error: ${data.error}</p>`;
               } else {
-                resultDiv.innerHTML = `<p class="error">⚠️ Analysis failed. Please try again.</p>`;
+                progress.cancel();
+                webcamResult.innerHTML = `<p class="error">⚠️ Analysis failed. Please try again.</p>`;
               }
             }
           } catch (error) {
-            resultDiv.innerHTML = `<p class="error">⚠️ Network Error: ${error.message}</p>`;
+            progress.cancel();
+            webcamResult.innerHTML = `<p class="error">⚠️ Network Error: ${error.message}</p>`;
           }
         }, 'image/jpeg');
       }
     });
-    </script>
+  </script>
 
 </body>
 </html>

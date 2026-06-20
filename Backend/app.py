@@ -16,6 +16,12 @@ TEMP_FOLDER = "temp_uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(TEMP_FOLDER, exist_ok=True)
 
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 # Configure Gemini API from environment variable
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 if not GEMINI_API_KEY:
@@ -148,7 +154,11 @@ def match_faces():
     if uploaded_file.filename == '':
         return jsonify({"error": "No file selected"}), 400
     
-    unique_filename = f"{uuid.uuid4()}.jpg"
+    if not allowed_file(uploaded_file.filename):
+        return jsonify({"error": "File type not allowed. Supported formats are png, jpg, jpeg."}), 400
+    
+    ext = uploaded_file.filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"{uuid.uuid4()}.{ext}"
     uploaded_path = os.path.join(TEMP_FOLDER, unique_filename)
     uploaded_file.save(uploaded_path)
 
@@ -259,7 +269,11 @@ def analyze_image():
     if uploaded_file.filename == '':
         return jsonify({"error": "No file selected"}), 400
     
-    unique_filename = f"{uuid.uuid4()}.jpg"
+    if not allowed_file(uploaded_file.filename):
+        return jsonify({"error": "File type not allowed. Supported formats are png, jpg, jpeg."}), 400
+        
+    ext = uploaded_file.filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"{uuid.uuid4()}.{ext}"
     uploaded_path = os.path.join(TEMP_FOLDER, unique_filename)
     uploaded_file.save(uploaded_path)
 
@@ -309,7 +323,11 @@ def comprehensive_analysis():
     if uploaded_file.filename == '':
         return jsonify({"error": "No file selected"}), 400
     
-    unique_filename = f"{uuid.uuid4()}.jpg"
+    if not allowed_file(uploaded_file.filename):
+        return jsonify({"error": "File type not allowed. Supported formats are png, jpg, jpeg."}), 400
+        
+    ext = uploaded_file.filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"{uuid.uuid4()}.{ext}"
     uploaded_path = os.path.join(TEMP_FOLDER, unique_filename)
     uploaded_file.save(uploaded_path)
 
@@ -443,7 +461,11 @@ def search_appearance():
 
     # If it's an image search, we first describe the uploaded image
     if uploaded_file and uploaded_file.filename != '':
-        unique_filename = f"query_{uuid.uuid4()}.jpg"
+        if not allowed_file(uploaded_file.filename):
+            return jsonify({"error": "File type not allowed. Supported formats are png, jpg, jpeg."}), 400
+            
+        ext = uploaded_file.filename.rsplit('.', 1)[1].lower()
+        unique_filename = f"query_{uuid.uuid4()}.{ext}"
         uploaded_path = os.path.join(TEMP_FOLDER, unique_filename)
         uploaded_file.save(uploaded_path)
         
