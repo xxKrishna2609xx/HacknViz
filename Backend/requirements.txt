@@ -1,4 +1,9 @@
-Flask
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-multipart
+jinja2
 gunicorn
 deepface
 google-generativeai
@@ -6,3 +11,4 @@ Pillow
 tensorflow==2.13.0
 tf-keras
 python-dotenv
+numpy
